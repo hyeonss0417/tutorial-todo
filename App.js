@@ -1,42 +1,65 @@
-import React from 'react';
-import { 
-  StyleSheet, 
-  Text, 
-  View, 
-  StatusBar, 
-  TextInput, 
+import React from "react";
+import {
+  StyleSheet,
+  Text,
+  View,
+  StatusBar,
+  TextInput,
   Dimensions,
   Platform,
-} from 'react-native';
+  ScrollView
+} from "react-native";
+import ToDo from "./ToDo";
 
 const { height, width } = Dimensions.get("window");
 
 export default class App extends React.Component {
+  state = {
+    newToDo: ""
+  };
   render() {
+    const { newToDo } = this.state;
     return (
       <View style={styles.container}>
         <StatusBar barStyle="light-content" />
         <Text style={styles.title}>Todo List</Text>
         <View style={styles.card}>
-          <TextInput style={styles.input} placeholder={"New To Do"} />
+          <TextInput
+            style={styles.input}
+            placeholder={"New To Do"}
+            onChangeText={this._crontollNewToDo}
+            placeholderTextColor={"#999"}
+            value={newToDo}
+            returnKeyType={"done"}
+            autoCorrect={false}
+          />
+          <ScrollView contentContainerStyle={styles.toDos}>
+            <ToDo text={"Hello"}/>
+          </ScrollView>
         </View>
       </View>
     );
   }
+
+  _crontollNewToDo = text => {
+    this.setState({
+      newToDo: text
+    });
+  };
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, 
-    backgroundColor: '#F23657',
-    alignItems: 'center',
+    flex: 1,
+    backgroundColor: "#F23657",
+    alignItems: "center"
   },
   title: {
     color: "white",
     fontSize: 30,
     marginTop: 55,
     fontWeight: "200",
-    marginBottom: 30,
+    marginBottom: 30
   },
   card: {
     backgroundColor: "white",
@@ -58,9 +81,17 @@ const styles = StyleSheet.create({
         elevation: 3
       }
     })
-  }, 
+  },
   input: {
+    padding: 20,
+    borderBottomColor: "#bbb",
+    //borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 1,
     height: 60,
-    color: "white",
+    fontSize: 25
+  },
+  toDos: {
+    alignItems: 'center',
+
   },
 });
