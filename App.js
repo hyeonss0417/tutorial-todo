@@ -7,18 +7,31 @@ import {
   TextInput,
   Dimensions,
   Platform,
-  ScrollView
+  ScrollView,
+  AsyncStorage
 } from "react-native";
+import { AppLoading } from "expo";
+
+import uuidv1 from "uuid/v1";
 import ToDo from "./ToDo";
 
 const { height, width } = Dimensions.get("window");
 
 export default class App extends React.Component {
   state = {
-    newToDo: ""
+    newToDo: "",
+    loadedToDos: false,
+    toDos: {}
   };
+  componentDidMount() {
+    this._loadToDos();
+  }
+
   render() {
-    const { newToDo } = this.state;
+    const { newToDo, loadedToDos, toDos } = this.state;
+    if (!loadedToDos) {
+      return <AppLoading />;
+    }
     return (
       <View style={styles.container}>
         <StatusBar barStyle="light-content" />
@@ -32,9 +45,23 @@ export default class App extends React.Component {
             value={newToDo}
             returnKeyType={"done"}
             autoCorrect={false}
+            onSubmitEditing={this._addToDo}
           />
           <ScrollView contentContainerStyle={styles.toDos}>
-            <ToDo text={"Hello"}/>
+            {toDos
+              ? Object.values(toDos)
+                  .reverse()
+                  .map(toDo =>
+                    <ToDo
+                      key={toDo.id}
+                      deleteToDo={this._deleteToDo}
+                      toggleCompleteToDo={this._toggleCompleteToDo}
+                      updateToDo={this._updateToDo}
+                      {...toDo}
+                    />
+                  )
+              : null}
+              {console.log(Object.values(toDos))}
           </ScrollView>
         </View>
       </View>
@@ -45,6 +72,103 @@ export default class App extends React.Component {
     this.setState({
       newToDo: text
     });
+  };
+
+  _loadToDos = async () => {
+    try {
+      const toDos = await AsyncStorage.getItem("toDos");
+      //await AsyncStorage.removeItem("toDos");
+      const parsedToDos = JSON.parse(toDos);
+      if (toDos !== "") {
+        this.setState({
+          loadedToDos: true,
+          toDos: parsedToDos
+        });
+      }
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  _addToDo = () => {
+    const { newToDo } = this.state;
+    if (newToDo !== "") {
+      this.setState(prevState => {
+        const ID = uuidv1();
+        const newToDoObect = {
+          [ID]: {
+            id: ID,
+            isCompleted: false,
+            text: newToDo,
+            createdAt: Date.now()
+          }
+        };
+        const newState = {
+          ...prevState,
+          newToDo: "",
+          toDos: {
+            ...prevState.toDos,
+            ...newToDoObect
+          }
+        };
+        this._saveToDos(newState.toDos);
+        return { ...newState };
+      });
+    }
+  };
+
+  _deleteToDo = id => {
+    this.setState(prevState => {
+      const toDos = prevState.toDos;
+      delete toDos[id];
+      const newState = {
+        ...prevState,
+        ...toDos
+      };
+      this._saveToDos(newState.toDos);
+      return { ...newState };
+    });
+  };
+
+  _toggleCompleteToDo = id => {
+    this.setState(prevState => {
+      const newState = {
+        ...prevState,
+        toDos: {
+          ...prevState.toDos,
+          [id]: {
+            ...prevState.toDos[id],
+            isCompleted: !prevState.toDos[id].isCompleted
+          }
+        }
+      };
+      
+      this._saveToDos(newState.toDos);
+      return { ...newState };
+    });
+  };
+
+  _updateToDo = (id, text) => {
+    this.setState(prevState => {
+      const newState = {
+        ...prevState,
+        toDos: {
+          ...prevState.toDos,
+          [id]: {
+            ...prevState.toDos[id],
+            text: text
+          }
+        }
+      };
+      this._saveToDos(newState.toDos);
+      return { ...newState };
+    });
+  };
+
+  _saveToDos = newToDos => {
+    //console.log(JSON.stringify(newToDos));
+    //console.log( {...newToDos} );
+    const saveToDos = AsyncStorage.setItem("toDos", JSON.stringify(newToDos));
   };
 }
 
@@ -87,11 +211,10 @@ const styles = StyleSheet.create({
     borderBottomColor: "#bbb",
     //borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomWidth: 1,
-    height: 60,
+    height: 85,
     fontSize: 25
   },
   toDos: {
-    alignItems: 'center',
-
-  },
+    alignItems: "center"
+  }
 });
